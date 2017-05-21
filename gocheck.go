@@ -16,7 +16,7 @@ func stripLineNumbers(file string) bool {
 	re := regexp.MustCompile(`\Wline="(.*?)"`)
 	res := re.ReplaceAll(data, []byte(""))
 
-	err = ioutil.WriteFile(os.Args[1], res, 0644)
+	err = ioutil.WriteFile(file, res, 0644)
 	if err != nil {
 		return false
 	}
