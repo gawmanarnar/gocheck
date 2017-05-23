@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 )
 
 type results struct {
 	XMLName xml.Name `xml:"results"`
-	Errder  errors   `xml:"errors"`
+	Errors  errors   `xml:"errors"`
 }
 
 type errors struct {
 	XMLName xml.Name `xml:"errors"`
-	Errs    []err    `xml:"error"`
+	Errors  []err    `xml:"error"`
 }
 
 type err struct {
@@ -29,20 +30,31 @@ type location struct {
 	Line    int      `xml:"line,attr"`
 }
 
-func main() {
-	data, err := ioutil.ReadFile(os.Args[1])
-	if err != nil {
-		return
-	}
-
-	v := results{}
-	err = xml.Unmarshal(data, &v)
+func getResults(file string) errors {
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		fmt.Println(err)
+		return errors{}
+	}
+
+	result := results{}
+	err = xml.Unmarshal(data, &result)
+	if err != nil {
+		fmt.Println(err)
+		return errors{}
+	}
+
+	return result.Errors
+}
+
+func main() {
+	if len(os.Args) < 3 {
+		fmt.Println("Missing file name parameter")
 		return
 	}
 
-	for i := 0; i < len(v.Errder.Errs); i++ {
-		fmt.Printf("%s:%d - %s\n", v.Errder.Errs[i].Loc.File, v.Errder.Errs[i].Loc.Line, v.Errder.Errs[i].Msg)
-	}
+	file1 := getResults(os.Args[1])
+	file2 := getResults(os.Args[2])
+
+	fmt.Println(reflect.DeepEqual(file1, file2))
 }
