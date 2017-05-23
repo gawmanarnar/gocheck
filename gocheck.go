@@ -1,35 +1,48 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"regexp"
 )
 
-func stripLineNumbers(file string) bool {
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return false
-	}
+type results struct {
+	XMLName xml.Name `xml:"results"`
+	Errder  errors   `xml:"errors"`
+}
 
-	re := regexp.MustCompile(`\Wline="(.*?)"`)
-	res := re.ReplaceAll(data, []byte(""))
+type errors struct {
+	XMLName xml.Name `xml:"errors"`
+	Errs    []err    `xml:"error"`
+}
 
-	err = ioutil.WriteFile(file, res, 0644)
-	if err != nil {
-		return false
-	}
+type err struct {
+	XMLName xml.Name `xml:"error"`
+	Msg     string   `xml:"msg,attr"`
+	Loc     location `xml:"location"`
+}
 
-	return true
+type location struct {
+	XMLName xml.Name `xml:"location"`
+	File    string   `xml:"file,attr"`
+	Line    int      `xml:"line,attr"`
 }
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Println("Missing file name parameter")
+	data, err := ioutil.ReadFile(os.Args[1])
+	if err != nil {
 		return
 	}
 
-	stripLineNumbers(os.Args[1])
-	stripLineNumbers(os.Args[2])
+	v := results{}
+	err = xml.Unmarshal(data, &v)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	for i := 0; i < len(v.Errder.Errs); i++ {
+		fmt.Printf("%s:%d - %s\n", v.Errder.Errs[i].Loc.File, v.Errder.Errs[i].Loc.Line, v.Errder.Errs[i].Msg)
+	}
 }
