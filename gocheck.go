@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"reflect"
 )
 
@@ -48,6 +49,16 @@ func getResults(file string) errors {
 }
 
 func main() {
+
+	cmd := "cppcheck"
+	args := []string{"awesome stuff"}
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		fmt.Println(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	if len(os.Args) < 3 {
 		fmt.Println("Missing file name parameter")
 		return
