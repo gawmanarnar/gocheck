@@ -4,9 +4,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
-	"reflect"
 )
 
 type results struct {
@@ -50,22 +50,63 @@ func getResults(file string) errors {
 
 func main() {
 
-	cmd := "cppcheck"
-	args := []string{"awesome stuff"}
+	cmd := "svn"
+	args := []string{"cat", os.Args[1]}
 
-	err := exec.Command(cmd, args...).Run()
+	out, err := exec.Command(cmd, args...).Output()
 	if err != nil {
-		fmt.Println(os.Stderr, err)
-		os.Exit(1)
+		log.Fatal(err)
+	}
+	err = ioutil.WriteFile("temp.cpp", out, 0644)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	if len(os.Args) < 3 {
-		fmt.Println("Missing file name parameter")
+	cmd = "C:\\Program Files\\cppcheck\\cppcheck.exe"
+	args = []string{"--force", "-j 4", "--enable=all", "--inconclusive", "--inline-suppr", "--xml", "--xml-version=2", "--std=c++03", "--suppress=cstyleCast",
+		"--suppress=noExplicitConstructor", "--suppress=missingInclude", "--suppress=unmatchedSuppression", "temp.cpp"}
+
+	f, err := os.Create("cppcheck.xml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	command := exec.Command(cmd, args...)
+	command.Stderr = f
+	if err := command.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := command.Wait(); err != nil {
+		log.Fatal(err)
+	}
+
+	data, err := ioutil.ReadFile(f.Name())
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(data))
+
+	err = os.Remove("temp.cpp")
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
-	file1 := getResults(os.Args[1])
-	file2 := getResults(os.Args[2])
+	f.Close()
+	err = os.Remove("cppcheck.xml")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-	fmt.Println(reflect.DeepEqual(file1, file2))
+	// if len(os.Args) < 3 {
+	// 	fmt.Println("Missing file name parameter")
+	// 	return
+	// }
+
+	// file1 := getResults(os.Args[1])
+	// file2 := getResults(os.Args[2])
+
+	// fmt.Println(reflect.DeepEqual(file1, file2))
 }
